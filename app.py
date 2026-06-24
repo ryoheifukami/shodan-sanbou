@@ -22,10 +22,16 @@ import sys
 import json
 import base64
 
-# 公開サーバー(Linux)の文字コードがasciiでも、日本語のログ出力で落ちないようUTF-8に固定する
-for _stream_name in ("stdout", "stderr"):
+# 公開サーバー(Linux)の文字コードがasciiでも日本語で落ちないよう、できる範囲でUTF-8に寄せる
+if os.environ.get("SKIP_UTF8_FIX") != "1":
+    for _stream_name in ("stdout", "stderr"):
+        try:
+            getattr(sys, _stream_name).reconfigure(encoding="utf-8")
+        except Exception:
+            pass
     try:
-        getattr(sys, _stream_name).reconfigure(encoding="utf-8")
+        import locale as _locale
+        _locale.getpreferredencoding = lambda *a, **k: "utf-8"  # ascii既定をUTF-8に上書き
     except Exception:
         pass
 
@@ -533,6 +539,9 @@ def render_prep_tab(client, ctx):
         except Exception as e:
             prog.empty()
             st.error(f"作成中にエラーが発生しました：{e}")
+            import traceback
+            with st.expander("詳細（不具合調査用・運営者向け）"):
+                st.code(traceback.format_exc())
             return
         prog.empty()
 
