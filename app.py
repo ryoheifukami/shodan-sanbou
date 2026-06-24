@@ -22,16 +22,10 @@ import sys
 import json
 import base64
 
-# 公開サーバー(Linux)の文字コードがasciiでも日本語で落ちないよう、できる範囲でUTF-8に寄せる
-if os.environ.get("SKIP_UTF8_FIX") != "1":
-    for _stream_name in ("stdout", "stderr"):
-        try:
-            getattr(sys, _stream_name).reconfigure(encoding="utf-8")
-        except Exception:
-            pass
+# 公開サーバー(Linux)の文字コードがasciiでも、日本語のログ出力で落ちないようUTF-8に固定
+for _stream_name in ("stdout", "stderr"):
     try:
-        import locale as _locale
-        _locale.getpreferredencoding = lambda *a, **k: "utf-8"  # ascii既定をUTF-8に上書き
+        getattr(sys, _stream_name).reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -447,6 +441,8 @@ def read_api_key() -> str:
         candidates.append(env_v)
     for s in candidates:
         s = re.sub(r"\s+", "", s.strip().strip("\"'“”’‘").strip())
+        # APIキーは半角英数記号のみ。全角カッコ等の余計な文字が混入していても除去する
+        s = "".join(ch for ch in s if ord(ch) < 128)
         if s:
             return s
     return ""
