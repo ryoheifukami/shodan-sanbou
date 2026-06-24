@@ -457,7 +457,7 @@ def check_password() -> bool:
 
 
 # ===== サイドバー：プロフィール =====
-def render_profile_sidebar(email) -> dict:
+def render_profile_sidebar(email, cm) -> dict:
     # ログイン中の会員のプロフィールをDBから読み込む（会員が変わったら読み直す）
     if st.session_state.get("pf_for") != email:
         prof = membership.get_profile(email)
@@ -466,7 +466,7 @@ def render_profile_sidebar(email) -> dict:
         st.session_state["pf_for"] = email
 
     with st.sidebar:
-        membership.render_account_controls(email)
+        membership.render_account_controls(email, cm)
         st.divider()
         st.subheader("あなたのプロフィール")
         st.caption("お礼メールの署名などに使われます。")
@@ -599,8 +599,10 @@ def main():
     st.set_page_config(page_title="ショウダン参謀",
                        page_icon=LOGO_PATH if os.path.exists(LOGO_PATH) else "🤝", layout="wide")
 
+    # ログイン保持用のCookie管理（1リクエスト1回だけ生成）
+    cm = membership.cookie_manager()
     # ログイン＋サブスク確認。未ログイン/未加入ならここで画面を出して停止する
-    member_email = membership.authenticate(show_logo)
+    member_email = membership.authenticate(cm, show_logo)
 
     api_key = read_api_key()
     show_logo()
@@ -610,7 +612,7 @@ def main():
         st.stop()
     client = Anthropic(api_key=api_key)
 
-    profile = render_profile_sidebar(member_email)
+    profile = render_profile_sidebar(member_email, cm)
 
     # --- 基本情報（①②で共有）---
     st.subheader("基本情報")

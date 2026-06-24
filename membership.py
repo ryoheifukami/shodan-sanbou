@@ -65,15 +65,32 @@ def get_engine():
             "last_login_at TEXT,"
             "stripe_customer_id TEXT,"
             "subscription_status TEXT DEFAULT 'none',"
-            "name TEXT, company TEXT, title TEXT, phone TEXT, signature TEXT"
+            "name TEXT, company TEXT, title TEXT, phone TEXT, signature TEXT,"
+            "session_token TEXT"
             ")"
         ))
+    # 既存DB向けマイグレーション（列が無ければ足す。あればエラーを無視）
+    for ddl in ("ALTER TABLE members ADD COLUMN session_token TEXT",):
+        try:
+            with eng.begin() as cx:
+                cx.execute(text(ddl))
+        except Exception:
+            pass
     return eng
 
 
 def get_member(email):
     with get_engine().begin() as cx:
         row = cx.execute(text("SELECT * FROM members WHERE email=:e"), {"e": email}).mappings().first()
+    return dict(row) if row else None
+
+
+def get_member_by_token(token):
+    if not token:
+        return None
+    with get_engine().begin() as cx:
+        row = cx.execute(text("SELECT * FROM members WHERE session_token=:t"),
+                         {"t": token}).mappings().first()
     return dict(row) if row else None
 
 
@@ -200,8 +217,33 @@ def portal_url(email):
     return ps.url
 
 
+# ===== ログイン保持（Cookie）=====
+COOKIE_NAME = "sst"
+COOKIE_DAYS = 30
+
+
+def cookie_manager():
+    """1リクエストにつき1回だけ生成して使い回す（main()で生成）。"""
+    import extra_streamlit_components as stx
+    return stx.CookieManager(key="sst_mgr")
+
+
+def _start_session(cm, email):
+    """ログイン成立時：トークンを発行してDBとCookieに保存（次回以降ログイン不要に）。"""
+    token = secrets.token_urlsafe(32)
+    update_member(email, session_token=token)
+    st.session_state["member_email"] = email
+    st.session_state.pop("sub_active", None)
+    try:
+        cm.set(COOKIE_NAME, token,
+               expires_at=datetime.datetime.now() + datetime.timedelta(days=COOKIE_DAYS),
+               key="sst_set")
+    except Exception:
+        pass
+
+
 # ===== 画面 =====
-def _render_auth():
+def _render_auth(cm):
     st.subheader("ログイン / 新規登録")
     tab_login, tab_reg = st.tabs(["ログイン", "新規登録"])
     with tab_login:
@@ -211,9 +253,8 @@ def _render_auth():
             if st.form_submit_button("ログイン", type="primary", use_container_width=True):
                 m = get_member(email.strip().lower())
                 if m and verify_password(pw, m["password_hash"]):
-                    st.session_state["member_email"] = m["email"]
-                    st.session_state.pop("sub_active", None)
                     update_member(m["email"], last_login_at=_now())
+                    _start_session(cm, m["email"])
                     st.rerun()
                 else:
                     st.error("メールアドレスまたはパスワードが違います。")
@@ -234,12 +275,11 @@ def _render_auth():
                     st.error("このメールアドレスは既に登録されています。")
                 else:
                     create_member(email, pw)
-                    st.session_state["member_email"] = email
-                    st.session_state.pop("sub_active", None)
+                    _start_session(cm, email)
                     st.rerun()
 
 
-def _render_paywall(email):
+def _render_paywall(email, cm):
     st.info("ご利用には月額プラン（990円）へのお申し込みが必要です。")
     if stripe_enabled():
         try:
@@ -258,17 +298,27 @@ def _render_paywall(email):
             st.rerun()
     st.divider()
     if st.button("ログアウト"):
-        logout()
+        logout(cm)
 
 
-def logout():
+def logout(cm):
+    email = st.session_state.get("member_email")
+    if email:
+        try:
+            update_member(email, session_token=None)
+        except Exception:
+            pass
+    try:
+        cm.delete(COOKIE_NAME, key="sst_del")
+    except Exception:
+        pass
     for k in list(st.session_state.keys()):
-        if k.startswith("pf_") or k in ("member_email", "sub_active", "pf_for"):
+        if k.startswith("pf_") or k in ("member_email", "sub_active", "pf_for", "_ck_tried"):
             st.session_state.pop(k, None)
     st.rerun()
 
 
-def authenticate(header_fn=None):
+def authenticate(cm, header_fn=None):
     """ログイン＋サブスク有効を確認し、OKなら会員メールを返す。未達なら画面を出してst.stop()。"""
     get_engine()  # DB初期化
 
@@ -281,10 +331,31 @@ def authenticate(header_fn=None):
         pass
 
     email = st.session_state.get("member_email")
+
+    # Cookieからログイン復元（再ログイン不要にする）
+    if not email:
+        token = None
+        try:
+            token = (cm.get_all() or {}).get(COOKIE_NAME)
+        except Exception:
+            token = None
+        if token:
+            m = get_member_by_token(token)
+            if m:
+                email = m["email"]
+                st.session_state["member_email"] = email
+        elif not st.session_state.get("_ck_tried"):
+            # Cookieの読み込みは1テンポ遅れるので、初回だけ待つ（ログイン画面のチラつき防止）
+            st.session_state["_ck_tried"] = True
+            if header_fn:
+                header_fn()
+            st.caption("読み込み中…")
+            st.stop()
+
     if not email:
         if header_fn:
             header_fn()
-        _render_auth()
+        _render_auth(cm)
         st.stop()
 
     if not st.session_state.get("sub_active"):
@@ -293,12 +364,12 @@ def authenticate(header_fn=None):
         if not active:
             if header_fn:
                 header_fn()
-            _render_paywall(email)
+            _render_paywall(email, cm)
             st.stop()
     return email
 
 
-def render_account_controls(email):
+def render_account_controls(email, cm):
     """サイドバー用：契約管理・ログアウト。"""
     st.caption(f"ログイン中：{email}")
     if stripe_enabled():
@@ -307,4 +378,4 @@ def render_account_controls(email):
         except Exception:
             pass
     if st.button("ログアウト", use_container_width=True):
-        logout()
+        logout(cm)
