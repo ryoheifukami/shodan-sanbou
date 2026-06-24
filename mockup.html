@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商談準備アシスタント — モックアップ</title>
+<style>
+  :root{
+    --bg:#f5f5f3; --surface:#ffffff; --surface2:#faf9f6;
+    --text:#1f1f1d; --muted:#6b6a64; --hint:#9b9a93;
+    --border:#e4e2da; --border2:#d3d1c7;
+    --accent:#185fa5; --accent-bg:#e6f1fb; --accent-text:#0c447c;
+    --ok:#3b6d11;
+    --radius:8px; --radius-lg:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+    line-height:1.6; padding:24px 16px;
+  }
+  .wrap{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:20px;}
+  .head{display:flex; align-items:center; gap:12px;}
+  .head .logo{font-size:30px;}
+  .head h1{font-size:20px; font-weight:600; margin:0;}
+  .head p{font-size:13px; color:var(--muted); margin:2px 0 0;}
+  .panel{background:var(--surface2); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:22px;}
+  .sec{font-size:14px; font-weight:600; margin:0 0 10px;}
+  .sec.mt{margin-top:24px;}
+  .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;}
+  label.f{font-size:12px; color:var(--muted); display:block; margin-bottom:4px;}
+  .input{background:var(--surface); border:0.5px solid var(--border2); border-radius:var(--radius);
+         padding:10px 12px; font-size:13px; color:var(--text);}
+  .input.ph{color:var(--hint);}
+  .input.full{width:100%;}
+  .drop{display:flex; align-items:center; gap:10px; background:var(--surface);
+        border:1px dashed var(--border2); border-radius:var(--radius); padding:14px; color:var(--muted); font-size:13px;}
+  .chips-tags{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;}
+  .tag{display:inline-flex; align-items:center; gap:6px; background:var(--accent-bg); color:var(--accent-text);
+       font-size:12px; padding:5px 11px; border-radius:var(--radius);}
+  .group{margin-bottom:14px;}
+  .glabel{font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .chips{display:flex; gap:7px; flex-wrap:wrap;}
+  .chip{font-size:12.5px; padding:6px 14px; border-radius:999px; cursor:pointer; user-select:none;
+        background:var(--surface); color:var(--muted); border:0.5px solid var(--border2); transition:all .12s;}
+  .chip:hover{border-color:var(--accent);}
+  .chip.on{background:var(--accent-bg); color:var(--accent-text); border:1.5px solid var(--accent);}
+  .row{display:flex; gap:28px; flex-wrap:wrap;}
+  .mats{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:20px;}
+  .mat{font-size:13px; cursor:pointer; user-select:none; display:flex; align-items:center; gap:7px; color:var(--text);}
+  .box{width:16px; height:16px; border-radius:4px; border:1.5px solid var(--border2); display:inline-flex;
+       align-items:center; justify-content:center; font-size:11px; color:#fff; flex-shrink:0;}
+  .mat.on .box{background:var(--accent); border-color:var(--accent);}
+  .mat.off{color:var(--hint);}
+  .go{background:var(--accent); color:#fff; text-align:center; font-size:14.5px; font-weight:600;
+      padding:13px; border-radius:var(--radius); cursor:pointer; border:none; width:100%;}
+  .go:hover{background:#14538f;}
+  .go.sm{width:auto; padding:10px 22px; font-size:13.5px;}
+
+  /* 大タブ（機能切り替え） */
+  .maintabs{display:flex; gap:6px; flex-wrap:wrap;}
+  .mtab{font-size:13.5px; font-weight:600; padding:10px 16px; border-radius:var(--radius);
+        background:var(--surface); color:var(--muted); border:0.5px solid var(--border2); cursor:pointer;}
+  .mtab.on{background:var(--accent-bg); color:var(--accent-text); border:1.5px solid var(--accent);}
+  .pane{display:none;}
+  .pane.on{display:block;}
+
+  .ok{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ok); margin-bottom:12px;}
+  .tabs{display:flex; gap:2px; border-bottom:0.5px solid var(--border); margin-bottom:14px; flex-wrap:wrap;}
+  .tab{font-size:12.5px; padding:8px 14px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent;}
+  .tab.on{color:var(--text); font-weight:600; border-bottom-color:var(--accent);}
+  .card{background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:22px; font-size:13.5px;}
+  .card h4{margin:0 0 4px; font-size:13.5px; font-weight:600;}
+  .card h4.mt{margin-top:16px;}
+  .card p{margin:0 0 12px; color:var(--muted);}
+  .req{color:#854f0b; background:#faeeda; padding:1px 6px; border-radius:4px; font-size:12px;}
+  .actions{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+  .btn{font-size:12px; color:var(--muted); border:0.5px solid var(--border2); border-radius:var(--radius); padding:6px 12px; cursor:pointer; background:var(--surface);}
+  .note{font-size:12px; color:var(--hint); text-align:center; margin-top:18px;}
+  .bubble{background:var(--accent-bg); border-radius:var(--radius-lg); padding:12px 16px; font-size:13.5px; color:var(--accent-text); margin-bottom:10px;}
+  .qlabel{font-weight:600; margin-bottom:6px; font-size:13.5px;}
+  .next li{margin-bottom:4px;}
+  textarea.ta{width:100%; min-height:120px; background:var(--surface); border:0.5px solid var(--border2);
+             border-radius:var(--radius); padding:12px; font-size:13px; color:var(--hint); resize:vertical; font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <span class="logo">🤝</span>
+    <div>
+      <h1>商談準備アシスタント</h1>
+      <p>商談の「準備」「その場の質問対応」「あとの議事録」までまとめてサポート。</p>
+    </div>
+  </div>
+
+  <!-- 共有：基本情報 -->
+  <div class="panel">
+    <div class="sec">基本情報（最初に一度入力）</div>
+    <div class="grid2">
+      <div>
+        <label class="f">自社名／サービス名 *</label>
+        <div class="input">AImate（中小企業向けAI活用支援）</div>
+      </div>
+      <div>
+        <label class="f">相手の会社名・業種（任意）</label>
+        <div class="input ph">株式会社サンプル製作所／製造業</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <div class="drop">⬆ &nbsp;自社サービスの資料（PDF・Word・テキスト）をドラッグ＆ドロップ</div>
+      <div class="chips-tags">
+        <span class="tag">📄 サービス紹介資料.pdf</span>
+        <span class="tag">📄 料金表.docx</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 機能切り替え -->
+  <div class="maintabs">
+    <span class="mtab on" data-pane="prep">① 準備資料を作る</span>
+    <span class="mtab" data-pane="qa">② その場で質問（Q&amp;A）</span>
+    <span class="mtab" data-pane="minutes">③ 議事録まとめ</span>
+  </div>
+
+  <!-- ① 準備資料 -->
+  <div class="pane on" id="prep">
+    <div class="panel">
+      <div class="sec">商談のスタイルを選ぶ</div>
+      <div class="group">
+        <div class="glabel">商談フェーズ</div>
+        <div class="chips" data-single>
+          <span class="chip on">初回アポ</span><span class="chip">ヒアリング</span>
+          <span class="chip">提案・クロージング</span><span class="chip">再訪・フォロー</span>
+        </div>
+      </div>
+      <div class="group">
+        <div class="glabel">営業スタイル</div>
+        <div class="chips" data-single>
+          <span class="chip on">ヒアリング重視</span><span class="chip">提案型</span>
+          <span class="chip">価値・ROI訴求</span><span class="chip">関係構築重視</span><span class="chip">スピード重視</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="group">
+          <div class="glabel">相手の役職</div>
+          <div class="chips" data-single>
+            <span class="chip on">経営者・決裁者</span><span class="chip">現場担当</span><span class="chip">情シス・技術</span>
+          </div>
+        </div>
+        <div class="group">
+          <div class="glabel">商談時間</div>
+          <div class="chips" data-single>
+            <span class="chip">15分</span><span class="chip on">30分</span><span class="chip">60分</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec mt">用意する材料を選ぶ</div>
+      <div class="mats">
+        <span class="mat on"><span class="box">✓</span>商談スクリプト</span>
+        <span class="mat on"><span class="box">✓</span>想定QA</span>
+        <span class="mat on"><span class="box">✓</span>切り返しトーク</span>
+        <span class="mat on"><span class="box">✓</span>お礼メール</span>
+        <span class="mat off"><span class="box"></span>事前チェックリスト</span>
+        <span class="mat off"><span class="box"></span>ヒアリング項目</span>
+      </div>
+      <button class="go">🚀 商談材料を作成する</button>
+    </div>
+
+    <div style="margin-top:20px;">
+      <div class="ok">✓ できあがりました！（商談スクリプトは全文表示されます）</div>
+      <div class="tabs" data-single>
+        <span class="tab on">商談スクリプト</span><span class="tab">想定QA</span>
+        <span class="tab">切り返しトーク</span><span class="tab">お礼メール</span>
+      </div>
+      <div class="card">
+        <h4>【アイスブレイク：1〜2分】</h4>
+        <p>「本日はお時間ありがとうございます。御社、最近AIの話題も増えている中で——」</p>
+        <h4>【課題確認：5分】</h4>
+        <p>「今、現場で一番手間がかかっている作業は何でしょう？」<span class="req">要確認：相手の主力商品</span></p>
+        <h4>【提案：10分】</h4>
+        <p>「AImateは専門用語を使わず、社長と一緒にAI活用を進める伴走型のサービスで…」</p>
+        <h4>【次アクション：2分】</h4>
+        <p style="margin-bottom:0;">「もしご関心あれば、来週30分だけ、御社の業務に合わせた具体例をお持ちします」</p>
+        <div class="actions"><span class="btn">📋 コピー</span><span class="btn">⬇ 保存</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② Q&A -->
+  <div class="pane" id="qa">
+    <div class="panel">
+      <div class="sec">その場で質問（想定外の質問に対応）</div>
+      <p style="font-size:12.5px; color:var(--muted); margin:0 0 12px;">想定QAに無い質問をされたとき用。質問を打ち込むと、資料をもとに「そのまま言える回答」を作ります。</p>
+      <input class="input full" style="border:0.5px solid var(--border2);" value="正直、うちみたいな小さい会社にAIなんて必要ですか？" readonly>
+      <div style="margin-top:12px;"><button class="go sm">💬 回答を作る</button></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="qlabel">Q. 正直、うちみたいな小さい会社にAIなんて必要ですか？</div>
+      <div class="bubble">「そのお気持ち分かります。逆にお聞きしたいのですが、今、事務作業で『人手がかかってるな』という業務はありませんか？小さい会社こそ限られた人数で回しているからこそ、AIで月10時間でも削減できれば、その分を営業や商品開発に充てられます。そういう使い方を支援しているんです。」</div>
+      <div style="font-size:12.5px; color:var(--muted);">↩ 質問返し：「実際、今いちばん時間がかかっている業務はどんなことが多いですか？」</div>
+      <div class="actions"><span class="btn">📋 コピー</span></div>
+    </div>
+    <div class="card" style="margin-top:12px; opacity:.7;">
+      <div class="qlabel">Q. 導入にどれくらい期間かかりますか？</div>
+      <div class="bubble">「最短で翌週から始められます。最初の1か月は私たちが伴走して、御社の業務に合わせて使い方を一緒に組み立てます。」<span class="req">要確認：実際の導入期間</span></div>
+    </div>
+  </div>
+
+  <!-- ③ 議事録 -->
+  <div class="pane" id="minutes">
+    <div class="panel">
+      <div class="sec">議事録まとめ（文字起こし→要約＋ネクストアクション）</div>
+      <p style="font-size:12.5px; color:var(--muted); margin:0 0 12px;">ZoomやTeamsのトランスクリプト、手書きメモの書き起こしを貼ると、要点・決定事項・ネクストアクション・フォローメール案に整理します。</p>
+      <textarea class="ta" readonly>担当：本日はありがとうございます。
+社長：AIってうちには関係ないと思ってて…
+社長：請求書とお客さんへのメール返信に毎日2時間かかってる。
+担当：そこはAIで半分に。月5万で伴走支援します。
+社長：社内で相談したい。来週金曜まで待って。
+担当：では金曜にご連絡、事例資料も送ります。</textarea>
+      <div style="margin-top:12px;"><button class="go sm">📝 議事録にまとめる</button></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h4>商談サマリー</h4>
+      <p>AImateを初紹介。請求書作成・メール返信に毎日2時間を費やしており関心を示す。月額5万円の伴走支援を提示し、社内検討へ。来週金曜に再連絡予定。</p>
+      <h4 class="mt">相手の課題・関心・懸念</h4>
+      <p>・請求書とメール返信に毎日2時間／・費用対効果への不安／・社内稟議が必要</p>
+      <h4 class="mt">決定事項</h4>
+      <p>・事務作業をAImateで半減できる見込みを共有／・社長が社内検討することで合意</p>
+      <h4 class="mt">ネクストアクション</h4>
+      <ul class="next" style="margin:0 0 12px; color:var(--muted); padding-left:20px;">
+        <li>自社：事例資料を送付 ／ 本日中</li>
+        <li>自社：再連絡 ／ 来週金曜</li>
+        <li>相手：社内で検討・稟議 ／ <span class="req">期限：要確認</span></li>
+      </ul>
+      <h4 class="mt">フォローメール案</h4>
+      <p style="margin-bottom:0;">件名：本日はありがとうございました｜事例資料をお送りします<br>本文：本日はお時間をいただきありがとうございました。ご相談の請求書・メール返信業務について…</p>
+      <div class="actions"><span class="btn">📋 コピー</span><span class="btn">⬇ 保存</span></div>
+    </div>
+  </div>
+
+  <div class="note">※ これは見た目確認用のモックです。実物は app.py が本物のClaudeに繋がって生成します。</div>
+
+</div>
+
+<script>
+  // 大タブ切り替え
+  document.querySelectorAll('.mtab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.mtab').forEach(function(x){ x.classList.remove('on'); });
+      document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('on'); });
+      t.classList.add('on');
+      document.getElementById(t.dataset.pane).classList.add('on');
+    });
+  });
+  // 単一選択（チップ・結果タブ）
+  document.querySelectorAll('[data-single]').forEach(function(grp){
+    var cls = grp.classList.contains('tabs') ? 'tab' : 'chip';
+    grp.querySelectorAll('.'+cls).forEach(function(el){
+      el.addEventListener('click', function(){
+        grp.querySelectorAll('.'+cls).forEach(function(s){ s.classList.remove('on'); });
+        el.classList.add('on');
+      });
+    });
+  });
+  // 材料チェック
+  document.querySelectorAll('.mat').forEach(function(m){
+    m.addEventListener('click', function(){
+      m.classList.toggle('on'); m.classList.toggle('off');
+      m.querySelector('.box').textContent = m.classList.contains('on') ? '✓' : '';
+    });
+  });
+</script>
+</body>
+</html>

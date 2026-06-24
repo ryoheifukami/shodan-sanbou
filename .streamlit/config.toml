@@ -1,0 +1,8 @@
+# 見た目（白背景＋青トーン）
+[theme]
+base = "light"
+primaryColor = "#185fa5"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#eef4fb"
+textColor = "#1f1f1d"
+font = "sans serif"
