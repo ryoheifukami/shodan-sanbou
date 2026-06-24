@@ -1,0 +1,8 @@
+﻿OK keys: ERROR TYPE: UnicodeEncodeError
+ERROR MSG: "'ascii' codec can't encode characters in position 2-6: ordinal not in range(128)"
+--- TRACEBACK (last 16) ---
+Traceback (most recent call last):
+  File "C:\Users\aiacq\Projects\X_Buffer\sales-prep-tool\_repro.py", line 16, in <module>
+    print("OK keys:", list(secs.keys()))
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'ascii' codec can't encode characters in position 2-6: ordinal not in range(128)
