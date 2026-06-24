@@ -255,7 +255,8 @@ def _render_auth(cm):
                 if m and verify_password(pw, m["password_hash"]):
                     update_member(m["email"], last_login_at=_now())
                     _start_session(cm, m["email"])
-                    st.rerun()
+                    # ここで st.rerun() しない：Cookieの書き込みを優先し、
+                    # cm.set 完了時の自動rerunでアプリへ遷移させる
                 else:
                     st.error("メールアドレスまたはパスワードが違います。")
     with tab_reg:
@@ -276,7 +277,7 @@ def _render_auth(cm):
                 else:
                     create_member(email, pw)
                     _start_session(cm, email)
-                    st.rerun()
+                    # st.rerun() しない（Cookie書き込み優先。cm.setの自動rerunで遷移）
 
 
 def _render_paywall(email, cm):
@@ -344,18 +345,15 @@ def authenticate(cm, header_fn=None):
             if m:
                 email = m["email"]
                 st.session_state["member_email"] = email
-        elif not st.session_state.get("_ck_tried"):
-            # Cookieの読み込みは1テンポ遅れるので、初回だけ待つ（ログイン画面のチラつき防止）
-            st.session_state["_ck_tried"] = True
-            if header_fn:
-                header_fn()
-            st.caption("読み込み中…")
-            st.stop()
 
     if not email:
         if header_fn:
             header_fn()
         _render_auth(cm)
+        # _render_auth内でログインが成立したら、この時点でCookieは描画済み。
+        # ここで初めてrerunしてアプリ画面へ遷移する（即rerunするとCookie未書き込みになるため）
+        if st.session_state.get("member_email"):
+            st.rerun()
         st.stop()
 
     if not st.session_state.get("sub_active"):

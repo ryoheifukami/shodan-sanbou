@@ -2,6 +2,7 @@
 profile.json
 members.db
 .env
+.claude/
 __pycache__/
 *.pyc
 .venv/
