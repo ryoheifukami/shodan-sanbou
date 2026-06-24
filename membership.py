@@ -228,10 +228,37 @@ def cookie_manager():
     return stx.CookieManager(key="sst_mgr")
 
 
+def _read_cookie_token(cm):
+    """Cookieからトークンを読む。まずStreamlit標準（即時・確実）、ダメなら部品から。"""
+    try:
+        v = st.context.cookies.get(COOKIE_NAME)
+        if v:
+            return v
+    except Exception:
+        pass
+    try:
+        return (cm.get_all() or {}).get(COOKIE_NAME)
+    except Exception:
+        return None
+
+
+def _trigger_reload():
+    """Cookie書き込みを確定させてからページ全体を再読込する（少し待ってから）。"""
+    import streamlit.components.v1 as components
+    components.html(
+        "<script>setTimeout(function(){var w=window.parent||window; w.location.reload();}, 800)</script>",
+        height=0,
+    )
+
+
 def _start_session(cm, email):
     """ログイン成立時：トークンを発行してDBとCookieに保存（次回以降ログイン不要に）。"""
-    token = secrets.token_urlsafe(32)
-    update_member(email, session_token=token)
+    m = get_member(email) or {}
+    token = m.get("session_token") or secrets.token_urlsafe(32)  # あれば使い回す
+    try:
+        update_member(email, session_token=token)
+    except Exception:
+        pass
     st.session_state["member_email"] = email
     st.session_state.pop("sub_active", None)
     try:
@@ -335,11 +362,7 @@ def authenticate(cm, header_fn=None):
 
     # Cookieからログイン復元（再ログイン不要にする）
     if not email:
-        token = None
-        try:
-            token = (cm.get_all() or {}).get(COOKIE_NAME)
-        except Exception:
-            token = None
+        token = _read_cookie_token(cm)
         if token:
             m = get_member_by_token(token)
             if m:
@@ -350,10 +373,10 @@ def authenticate(cm, header_fn=None):
         if header_fn:
             header_fn()
         _render_auth(cm)
-        # _render_auth内でログインが成立したら、この時点でCookieは描画済み。
-        # ここで初めてrerunしてアプリ画面へ遷移する（即rerunするとCookie未書き込みになるため）
+        # ログイン成立 → Cookie書き込みを確定させてからページ全体を再読込（確実に保持）
         if st.session_state.get("member_email"):
-            st.rerun()
+            st.info("ログインしています…")
+            _trigger_reload()
         st.stop()
 
     if not st.session_state.get("sub_active"):
