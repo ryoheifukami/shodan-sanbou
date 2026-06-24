@@ -331,13 +331,16 @@ def to_plain(md: str) -> str:
 
 
 def to_display(md: str) -> str:
-    """画面表示用。装飾の罫線(=== --- など)で文字が巨大化する誤変換（Setext見出し）を防ぐ。太字などは残す。"""
+    """画面表示用。装飾の罫線で巨大化（Setext見出し）を防ぎ、# 見出しは大きすぎるので太字に落とす。"""
     out = []
     for line in (md or "").split("\n"):
         if re.fullmatch(r"\s*[=\-_*]{3,}\s*", line):
             out.append("")                              # 罫線だけの行は空行に
             continue
         line = re.sub(r"^\s*[=\-_*]{3,}\s*", "", line)  # 行頭の装飾記号の連続を除去
+        m = re.match(r"^\s{0,3}#{1,6}\s*(.+?)\s*#*\s*$", line)  # # 見出し → 太字（通常サイズ）
+        if m:
+            line = f"**{m.group(1)}**"
         out.append(line)
     return "\n".join(out)
 
@@ -535,15 +538,12 @@ def render_prep_tab(client, ctx):
         except Exception as e:
             prog.empty()
             st.error(f"作成中にエラーが発生しました：{e}")
-            import traceback
-            with st.expander("詳細（不具合調査用・運営者向け）"):
-                st.code(traceback.format_exc())
             return
         prog.empty()
 
     sections = st.session_state.get("prep_sections")
     if sections:
-        st.success("できあがりました。タブを切り替えて確認・コピーできます。")
+        st.success("できあがりました。タブを切り替えて確認できます。")
         full = "\n\n".join(f"■ {k}\n{to_plain(v)}" for k, v in sections.items())
         st.download_button("⬇ まとめてテキスト保存", full,
                            file_name=f"商談準備_{ctx['service']}.txt", mime="text/plain")
@@ -551,8 +551,6 @@ def render_prep_tab(client, ctx):
         for tab, (key, content) in zip(tabs, sections.items()):
             with tab:
                 st.markdown(to_display(content))
-                with st.expander("📋 コピー用（そのまま貼れる文章）"):
-                    st.code(to_plain(content), language=None)
 
 
 def render_qa_tab(client, ctx):
@@ -604,8 +602,6 @@ def render_minutes_tab(client, ctx):
         st.download_button("⬇ 議事録をテキスト保存", to_plain(result),
                            file_name=f"議事録_{ctx['service']}.txt", mime="text/plain")
         st.markdown(to_display(result))
-        with st.expander("📋 コピー用（そのまま貼れる文章）"):
-            st.code(to_plain(result), language=None)
 
 
 def main():
